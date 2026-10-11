@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>فحص صلاحية كود الحضور</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-card: #131b2e;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --accent-cyan: #00f2fe;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Cairo', system-ui, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    .container {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 36px 28px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .icon-wrapper {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+    }
+
+    .icon-expired {
+      background: rgba(239, 68, 68, 0.15);
+      border: 2px solid var(--accent-red);
+      color: var(--accent-red);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.3);
+      animation: pulse 1.5s infinite;
+    }
+
+    .icon-valid {
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid var(--accent-green);
+      color: var(--accent-green);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+    }
+
+    .title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .title.expired {
+      color: var(--accent-red);
+    }
+
+    .title.valid {
+      color: var(--accent-green);
+    }
+
+    .message {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .details-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .details-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .details-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .badge-alert {
+      display: inline-block;
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <!-- حالة التحميل -->
+    <div id="loadingState">
+      <div class="icon-wrapper icon-valid">⏳</div>
+      <h1 class="title valid">جاري التحقق من صلاحية الكود...</h1>
+      <p class="message">يتم فحص توقيت توليد الـ QR لمنع مشاركة الصور المسجلة.</p>
+    </div>
+
+    <!-- حالة انتهاء الصلاحية (إذا صوّر الشاشة وانتظر أكثر من 5 ثوانٍ) -->
+    <div id="expiredState" class="hidden">
+      <div class="icon-wrapper icon-expired">⛔</div>
+      <h1 class="title expired">الكود منتهي الصلاحية!</h1>
+      <p class="message">
+        عذراً، هذا الكود انتهت صلاحيته (يتغير الكود تلقائياً كل 5 ثوانٍ لمنع تصوير الشاشة وتناقل الصور).
+        <br><br>
+        <strong>يرجى مسح الكود الحي المعروض على شاشة المحاضرة الآن.</strong>
+      </p>
+
+      <div class="details-box">
+        <div class="details-row">
+          <span>الوقت المنقضي منذ توليده:</span>
+          <span class="details-val" id="elapsedTimeVal">-- ثانية</span>
+        </div>
+        <div class="details-row">
+          <span>أقصى مدة مسموحة:</span>
+          <span class="details-val" id="maxAllowedVal">5 ثوانٍ</span>
+        </div>
+      </div>
+
+      <div class="badge-alert">🔒 نظام الحماية من التصوير مفعل</div>
+    </div>
+
+    <!-- حالة النجاح (التحويل الفوري) -->
+    <div id="validState" class="hidden">
+      <div class="icon-wrapper icon-valid">✅</div>
+      <h1 class="title valid">الكود صالح!</h1>
+      <p class="message">تم التحقق من مسح الكود في الوقت الفعلي. جاري تحويلك إلى صفحة الحضور...</p>
+    </div>
+  </div>
+
+  <script>
+    // نافذة السماح (فترة الصلاحية + ثوانٍ إضافية لحساب تأخير الشبكة والتحميل)
+    // الافتراضي: 6 ثوانٍ
+    const ALLOWED_WINDOW_SECONDS = 6;
+
+    async function verifyAndRedirect() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetUrl = urlParams.get('url');
+      const timestampStr = urlParams.get('t');
+      const signature = urlParams.get('sig');
+      const code = urlParams.get('c');
+
+      const loadingEl = document.getElementById('loadingState');
+      const expiredEl = document.getElementById('expiredState');
+      const validEl = document.getElementById('validState');
+      const elapsedTimeVal = document.getElementById('elapsedTimeVal');
+
+      // إذا كانت المعلمات مفقودة
+      if (!targetUrl || !timestampStr) {
+        loadingEl.classList.add('hidden');
+        expiredEl.classList.remove('hidden');
+        document.querySelector('.title.expired').textContent = 'رابط غير صالح';
+        document.querySelector('#expiredState .message').textContent = 'هذا الرابط لا يحتوي على بيانات كافية للتحقق من الحضور.';
+        return;
+      }
+
+      const generatedTime = parseInt(timestampStr, 10);
+      const currentTime = Date.now();
+      const elapsedSeconds = Math.floor((currentTime - generatedTime) / 1000);
+
+      // فحص هل الكود منتهي الصلاحية؟ (مضى عليه أكثر من المهلة المحددة)
+      // نتحقق أيضاً من ألا يكون التاريخ قادماً من المستقبل بأكثر من ثانيتين
+      if (isNaN(generatedTime) || elapsedSeconds > ALLOWED_WINDOW_SECONDS || elapsedSeconds < -2) {
+        loadingEl.classList.add('hidden');
+        expiredEl.classList.remove('hidden');
+        elapsedTimeVal.textContent = `${Math.max(0, elapsedSeconds)} ثانية`;
+        return;
+      }
+
+      // الكود صالح وسليم! تم المسح خلال الـ 5 ثوانٍ
+      loadingEl.classList.add('hidden');
+      validEl.classList.remove('hidden');
+
+      // فك تشفير رابط الفورم المستهدف
+      let decodedUrl = '';
+      try {
+        decodedUrl = decodeURIComponent(atob(targetUrl));
+      } catch (e) {
+        decodedUrl = decodeURIComponent(targetUrl);
+      }
+
+      // التحويل الفوري إلى Google Form
+      setTimeout(() => {
+        window.location.replace(decodedUrl);
+      }, 300);
+    }
+
+    verifyAndRedirect();
+  </script>
+</body>
+</html>

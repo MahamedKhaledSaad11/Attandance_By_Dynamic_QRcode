@@ -5,6 +5,9 @@ const APP_CONFIG = {
   // رابط Google Form الخاص بالحضور (ضعه هنا أو من داخل البرنامج)
   formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSc_EXAMPLE/viewform",
 
+  // رابط بوابة فحص الـ 5 ثوانٍ لحظر تصوير الشاشة (مرفوعة على GitHub Pages)
+  gateUrl: "https://mahamedkhaledsaad11.github.io/Attandance_By_Dynamic_QRcode/gate.html",
+
   // اسم المادة أو السيكشن (اختياري - سيظهر فقط إذا تمت كتابته)
   courseName: "ذكاء اصطناعي",
 

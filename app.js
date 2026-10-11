@@ -1,10 +1,10 @@
-// State Management
 const state = {
   isRunning: false,
   intervalSeconds: 5,
   codeLength: 6,
   courseName: '',
   formUrl: '',
+  gateUrl: '',
   prefillParam: '',
   currentCode: '',
   animationFrameId: null,
@@ -50,6 +50,7 @@ const courseNameInput = document.getElementById('courseNameInput');
 const intervalInput = document.getElementById('intervalInput');
 const codeLengthInput = document.getElementById('codeLengthInput');
 const prefillParamInput = document.getElementById('prefillParamInput');
+const gateUrlInput = document.getElementById('gateUrlInput');
 const saveToast = document.getElementById('saveToast');
 
 // SVG Circumference: 2 * Math.PI * 45 ≈ 282.74
@@ -77,6 +78,7 @@ function loadConfiguration() {
 
   state.courseName = config.courseName ?? defaultConf.courseName ?? '';
   state.formUrl = config.formUrl ?? defaultConf.formUrl ?? '';
+  state.gateUrl = config.gateUrl ?? defaultConf.gateUrl ?? '';
   state.prefillParam = config.prefillParam ?? defaultConf.prefillParam ?? '';
   state.intervalSeconds = parseInt(config.intervalSeconds ?? defaultConf.intervalSeconds ?? 5);
   state.codeLength = parseInt(config.codeLength ?? defaultConf.codeLength ?? 6);
@@ -84,6 +86,7 @@ function loadConfiguration() {
   // تحديث حقول المودال
   formUrlInput.value = state.formUrl;
   courseNameInput.value = state.courseName;
+  if (gateUrlInput) gateUrlInput.value = state.gateUrl;
   prefillParamInput.value = state.prefillParam;
   intervalInput.value = state.intervalSeconds;
   codeLengthInput.value = state.codeLength;
@@ -129,6 +132,7 @@ function saveConfiguration() {
 
   state.formUrl = url;
   state.courseName = courseNameInput.value.trim();
+  state.gateUrl = gateUrlInput ? gateUrlInput.value.trim() : '';
   state.prefillParam = prefillParamInput.value.trim();
   state.intervalSeconds = Math.max(2, parseInt(intervalInput.value) || 5);
   state.codeLength = parseInt(codeLengthInput.value) || 6;
@@ -136,6 +140,7 @@ function saveConfiguration() {
   const toSave = {
     formUrl: state.formUrl,
     courseName: state.courseName,
+    gateUrl: state.gateUrl,
     prefillParam: state.prefillParam,
     intervalSeconds: state.intervalSeconds,
     codeLength: state.codeLength
@@ -186,7 +191,24 @@ function generateCode(length) {
   return Math.floor(min + Math.random() * (max - min + 1)).toString();
 }
 
-// 6. تجهيز الرابط النهائي مع الكود
+// تحديد رابط بوابة الفحص gate.html
+function getEffectiveGateUrl() {
+  if (state.gateUrl && state.gateUrl.trim()) {
+    return state.gateUrl.trim();
+  }
+  // إذا كان الموقع مرفوعاً على GitHub Pages أو خادم ويب (http / https)
+  if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+    const basePath = window.location.pathname.replace(/\/[^\/]*$/, '');
+    return `${window.location.origin}${basePath}/gate.html`;
+  }
+  // في حال التشغيل المحلي كملف file:///، نستخدم رابط البوابة المرفوعة على GitHub Pages
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.gateUrl) {
+    return APP_CONFIG.gateUrl;
+  }
+  return 'https://mahamedkhaledsaad11.github.io/Attandance_By_Dynamic_QRcode/gate.html';
+}
+
+// 6. تجهيز الرابط النهائي مع الكود وبوابة فحص الصلاحية
 function buildTargetUrl(rawUrl, code) {
   let urlStr = rawUrl ? rawUrl.trim() : 'https://docs.google.com/forms';
 
@@ -210,11 +232,21 @@ function buildTargetUrl(rawUrl, code) {
         url.searchParams.set('t', Date.now());
       }
     }
-    return url.toString();
+    urlStr = url.toString();
   } catch (e) {
     const separator = urlStr.includes('?') ? '&' : '?';
-    return `${urlStr}${separator}code=${code}&t=${Date.now()}`;
+    urlStr = `${urlStr}${separator}code=${code}&t=${Date.now()}`;
   }
+
+  // توجيه الرابط عبر بوابة gate.html لفحص مدة الـ 5 ثوانٍ وحظر الاسكرين شوت
+  const gate = getEffectiveGateUrl();
+  if (gate) {
+    const encodedForm = btoa(encodeURIComponent(urlStr));
+    const now = Date.now();
+    return `${gate}?url=${encodedForm}&t=${now}&c=${code}`;
+  }
+
+  return urlStr;
 }
 
 // 7. تحديث الـ QR والشاشة

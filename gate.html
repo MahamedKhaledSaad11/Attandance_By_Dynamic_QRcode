@@ -150,8 +150,19 @@
       let decodedUrl = '';
       try {
         decodedUrl = decodeURIComponent(atob(targetUrl));
-      } catch (e) {
-        decodedUrl = decodeURIComponent(targetUrl);
+      } catch (e1) {
+        try {
+          decodedUrl = decodeURIComponent(targetUrl);
+        } catch (e2) {
+          decodedUrl = targetUrl;
+        }
+      }
+
+      // التحقق من صحة الرابط وأنه بروتوكول ويب آمن
+      if (!decodedUrl || (!decodedUrl.startsWith('http://') && !decodedUrl.startsWith('https://'))) {
+        loadingEl.classList.add('hidden');
+        blockedEl.classList.remove('hidden');
+        return;
       }
 
       window.location.replace(decodedUrl);

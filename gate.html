@@ -105,13 +105,14 @@
   </div>
 
   <script>
-    // نافذة السماح (6 ثوانٍ)
-    const ALLOWED_WINDOW_SECONDS = 6;
+    // نافذة السماح الافتراضية (8 ثوانٍ: 5 ثوانٍ للكود + 3 ثوانٍ لسماحية استجابة الشبكة والكاميرا)
+    const DEFAULT_ALLOWED_WINDOW = 8;
 
     async function verifyAndRedirect() {
       const urlParams = new URLSearchParams(window.location.search);
       const targetUrl = urlParams.get('url');
       const timestampStr = urlParams.get('t');
+      const windowStr = urlParams.get('w');
 
       const loadingEl = document.getElementById('loadingState');
       const blockedEl = document.getElementById('blockedState');
@@ -123,13 +124,22 @@
         return;
       }
 
+      // تحديد مدة الصلاحية المسموحة (إذا حددها البرنامج نستخدمها، وإلا الافتراضي)
+      let allowedWindow = DEFAULT_ALLOWED_WINDOW;
+      if (windowStr) {
+        const parsedWindow = parseInt(windowStr, 10);
+        if (!isNaN(parsedWindow) && parsedWindow > 0) {
+          allowedWindow = parsedWindow;
+        }
+      }
+
       const generatedTime = parseInt(timestampStr, 10);
       const currentTime = Date.now();
       const elapsedSeconds = Math.floor((currentTime - generatedTime) / 1000);
 
-      // إذا انتهت الصلاحية (تم تصوير الشاشة وتأخر أكثر من 5 ثوانٍ):
-      // تظهر علامة الحظر فقط بدون أي توضيح
-      if (isNaN(generatedTime) || elapsedSeconds > ALLOWED_WINDOW_SECONDS || elapsedSeconds < -2) {
+      // إذا انتهت الصلاحية (تم تصوير الشاشة وتأخر أكثر من المدة المسموحة):
+      // نتحقق أيضاً من ألا يكون التاريخ قادماً من المستقبل بفارق غير منطقي (سماحية 60 ثانية لفرق التوقيت بين الأجهزة)
+      if (isNaN(generatedTime) || elapsedSeconds > allowedWindow || elapsedSeconds < -60) {
         loadingEl.classList.add('hidden');
         blockedEl.classList.remove('hidden');
         return;

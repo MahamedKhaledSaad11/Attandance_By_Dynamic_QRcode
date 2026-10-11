@@ -238,12 +238,14 @@ function buildTargetUrl(rawUrl, code) {
     urlStr = `${urlStr}${separator}code=${code}&t=${Date.now()}`;
   }
 
-  // توجيه الرابط عبر بوابة gate.html لفحص مدة الـ 5 ثوانٍ وحظر الاسكرين شوت
+  // توجيه الرابط عبر بوابة gate.html لفحص مدة الكود وحظر الاسكرين شوت
   const gate = getEffectiveGateUrl();
   if (gate) {
     const encodedForm = btoa(encodeURIComponent(urlStr));
     const now = Date.now();
-    return `${gate}?url=${encodedForm}&t=${now}&c=${code}`;
+    // مدة الصلاحية المسموحة = المدة المحددة للكود + 3 ثوانٍ سماحية لسرعة الشبكة واستجابة الكاميرا
+    const allowedWindow = (parseInt(state.intervalSeconds, 10) || 5) + 3;
+    return `${gate}?url=${encodedForm}&t=${now}&w=${allowedWindow}&c=${code}`;
   }
 
   return urlStr;
